@@ -1,0 +1,16 @@
+{
+  "appName": "WM STORE",
+  "siteDescription": "Opt-in Announcement Control Panel",
+  "backgroundImageUrl": "",
+  "blurStrength": 14,
+  "defaultMentionType": "none",
+  "defaultAnnouncementChannelId": "",
+  "fallbackDeveloperName": "WM STORE Dev",
+  "fallbackDeveloperUsername": "wmstore.dev",
+  "fallbackDeveloperAvatar": "/static/developer.svg",
+  "brandPrimary": "#7c3aed",
+  "brandSecondary": "#a855f7",
+  "subscriptionPanelTitle": "WM STORE | الاشتراك في الإعلانات",
+  "subscriptionPanelDescription": "إذا تريد تستلم الإعلانات بالخاص، اضغط اشتراك. وإذا ما تريد، اضغط إلغاء الاشتراك.",
+  "subscriptionPanelFooter": "WM STORE Opt-in Announcements"
+}

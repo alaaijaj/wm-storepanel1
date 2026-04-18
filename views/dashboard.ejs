@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title><%= settings.appName %></title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    body::before{
+      background-image: linear-gradient(rgba(11,7,20,.74), rgba(11,7,20,.88)), url('<%= settings.backgroundImageUrl || "/static/default-bg.svg" %>');
+      filter: blur(<%= settings.blurStrength || 14 %>px);
+      transform: scale(1.06);
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay"></div>
+  <div class="layout">
+    <aside class="sidebar glass">
+      <div class="brand hover-lift">
+        <img src="<%= logoPath() %>" alt="logo" class="ring"/>
+        <div>
+          <h1><%= settings.appName %></h1>
+          <p><%= settings.siteDescription %></p>
+        </div>
+      </div>
+
+      <div class="profile-card fx-float">
+        <div class="row-line"><strong>المستخدم:</strong> <span><%= currentUser.email %></span></div>
+        <div class="row-line"><strong>الصلاحية:</strong> <span class="badge-role"><%= currentUser.role %></span></div>
+        <div class="row-line"><strong>Discord ID:</strong> <span><%= currentUser.discordUserId || '-' %></span></div>
+      </div>
+
+      <div class="developer-card hover-lift">
+        <img src="<%= developer.avatar %>" alt="dev" class="ring"/>
+        <div>
+          <div class="label">Developer</div>
+          <div class="name"><%= developer.displayName %></div>
+          <div class="muted">@<%= developer.username %></div>
+        </div>
+      </div>
+
+      <div class="quick-mini glass">
+        <div class="mini-title">WM STORE</div>
+        <div class="mini-grid">
+          <div><span>المشتركون</span><strong><%= subscribersCount %></strong></div>
+          <div><span>المستخدمون</span><strong><%= users.length %></strong></div>
+        </div>
+      </div>
+
+      <nav>
+        <a href="#hero">الرئيسية</a>
+        <a href="#announce">إرسال إعلان</a>
+        <a href="#subscribers">المشتركون</a>
+        <a href="#send-live">حالة الإرسال</a>
+        <a href="#permissions">صلاحيات الإعلانات</a>
+        <a href="#users">المستخدمون</a>
+        <% if (currentUser.role === 'owner') { %><a href="#settings">الإعدادات</a><% } %>
+        <a href="#logs">السجل</a>
+      </nav>
+
+      <a class="logout" href="/logout">تسجيل الخروج</a>
+    </aside>
+
+    <main class="content">
+      <% if (result && result.error) { %><div class="alert error"><%= result.error %></div><% } %>
+      <% if (result && result.success) { %><div class="alert success"><%= result.message %></div><% } %>
+
+      <section id="hero" class="glass hero vip-hero">
+        <div class="hero-left">
+          <div class="hero-badge pulse">WM STORE</div>
+          <h2>لوحة إعلانات راقية وموافقة بالإذن</h2>
+          <p>البوت لا يرسل بالخاص إلا للأشخاص الذين ضغطوا <strong>اشتراك بالإعلانات</strong> داخل روم الاشتراك. هذا يعني أن الرسائل تعتبر بموافقتهم.</p>
+          <div class="hero-actions">
+            <a href="#announce" class="primary-btn hero-link shine-btn">إرسال إعلان</a>
+            <a href="#subscribers" class="secondary-btn hero-link">المشتركون</a>
+          </div>
+        </div>
+        <div class="hero-right">
+          <div class="stats-grid">
+            <div class="stat hover-lift"><span>المشتركون الفعالون</span><strong><%= subscribersCount %></strong></div>
+            <div class="stat hover-lift"><span>مستخدمي اللوحة</span><strong><%= users.length %></strong></div>
+            <div class="stat hover-lift"><span>الإرسال بالخاص</span><strong>بإذن فقط</strong></div>
+            <div class="stat hover-lift"><span>النمط</span><strong>احترافي</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="announce" class="glass card">
+        <div class="section-head">
+          <div>
+            <h2>إرسال إعلان</h2>
+            <p class="section-note">إما داخل قناة إعلانات في السيرفر، أو بالخاص للمشتركين الموافقين فقط.</p>
+          </div>
+        </div>
+
+        <form action="/announce" method="POST" enctype="multipart/form-data">
+          <div class="grid">
+            <label><span>السيرفر</span>
+              <select name="guildId" id="guildSelect" required>
+                <option value="">اختر السيرفر</option>
+                <% guilds.forEach(g => { %><option value="<%= g.id %>"><%= g.name %> (<%= g.members %>)</option><% }) %>
+              </select>
+            </label>
+
+            <label><span>اسم السيرفر</span><input type="text" id="guildNamePreview" readonly placeholder="يظهر تلقائيًا"/></label>
+
+            <label><span>نوع الإرسال</span>
+              <select name="sendMode" id="sendMode">
+                <option value="channel">إعلان داخل روم</option>
+                <option value="subscribers">إرسال خاص للمشتركين الموافقين</option>
+              </select>
+            </label>
+
+            <label id="channelWrap"><span>قناة الإعلانات</span><select name="channelId" id="channelId"></select></label>
+
+            <label><span>نوع المنشن</span>
+              <select name="mentionType" id="mentionType">
+                <option value="none">بدون منشن</option>
+                <option value="everyone">@everyone</option>
+                <option value="here">@here</option>
+                <option value="role">رتبة محددة</option>
+              </select>
+            </label>
+
+            <label id="mentionRoleWrap" class="hidden"><span>الرتبة للمنشن</span><select name="mentionRoleId" id="mentionRoleId"></select></label>
+
+            <label class="toggle"><input type="checkbox" name="useEmbed" checked><span>استخدام Embed</span></label>
+            <label><span>عنوان الإعلان</span><input type="text" name="title" placeholder="عنوان الإعلان"></label>
+            <label class="full"><span>الوصف</span><textarea name="description" rows="5" placeholder="اكتب وصف الإعلان هنا"></textarea></label>
+            <label class="full"><span>نص إضافي</span><textarea name="plainText" rows="3" placeholder="نص إضافي خارج الـ Embed"></textarea></label>
+            <label><span>لون الرسالة</span><input type="color" name="color" value="#7c3aed"></label>
+            <label><span>التذييل</span><input type="text" name="footer" placeholder="نص التذييل"></label>
+            <label><span>رابط صورة</span><input type="url" name="imageUrl" placeholder="https://..."></label>
+            <label><span>أو ارفع صورة</span><input type="file" name="image" accept="image/*"></label>
+          </div>
+
+          <div class="send-tips">
+            <div class="tip">لإنشاء روم الاشتراك: استخدم أمر <strong>/setup-subscription-panel</strong> داخل روم الاشتراك.</div>
+            <div class="tip">الإرسال بالخاص يذهب فقط لمن ضغطوا زر اشتراك، وبالتالي يعتبرون موافقين على الرسائل.</div>
+          </div>
+
+          <button class="primary-btn shine-btn" type="submit">تنفيذ الإرسال</button>
+        </form>
+      </section>
+
+      <section id="subscribers" class="glass card">
+        <div class="section-head">
+          <div>
+            <h2>المشتركون في إعلانات الخاص</h2>
+            <p class="section-note">هؤلاء اشتركوا عبر بانل الاشتراك في Discord.</p>
+          </div>
+        </div>
+        <div class="table">
+          <div class="thead"><span>الاسم</span><span>Discord ID</span><span>الحالة</span><span>تاريخ الاشتراك</span></div>
+          <% subscribers.forEach(s => { %>
+            <div class="trow">
+              <span><%= s.displayName || s.username || '-' %></span>
+              <span><%= s.discordUserId || '-' %></span>
+              <span><%= s.active ? 'مشترك' : 'ملغي' %></span>
+              <span><%= s.optedAt ? new Date(s.optedAt).toLocaleString('de-DE') : '-' %></span>
+            </div>
+          <% }) %>
+        </div>
+      </section>
+
+      <section id="send-live" class="glass card">
+        <div class="section-head">
+          <div>
+            <h2>حالة الإرسال المباشرة</h2>
+            <p class="section-note">للإرسال إلى المشتركين بالخاص فقط.</p>
+          </div>
+          <div class="head-actions">
+            <button type="button" class="secondary-btn" onclick="pauseSend()">إيقاف مؤقت</button>
+            <button type="button" class="secondary-btn" onclick="resumeSend()">استكمال</button>
+            <button type="button" class="danger-btn" onclick="stopSend()">إيقاف كامل</button>
+          </div>
+        </div>
+
+        <div class="status-board">
+          <div class="status-card"><span>الحالة</span><strong id="statusState">...</strong></div>
+          <div class="status-card"><span>المعالج</span><strong id="statusProcessed">0 / 0</strong></div>
+          <div class="status-card"><span>النجاح</span><strong id="statusSuccess">0</strong></div>
+          <div class="status-card"><span>الفشل</span><strong id="statusFailed">0</strong></div>
+        </div>
+
+        <div class="status-errors">
+          <h3>آخر الأخطاء</h3>
+          <div id="statusErrors" class="error-list">لا توجد أخطاء حالياً.</div>
+        </div>
+      </section>
+
+      <section id="permissions" class="glass card">
+        <h2>صلاحيات الإعلانات</h2>
+        <form action="/panel-perms/save" method="POST">
+          <div class="grid">
+            <label><span>السيرفر</span>
+              <select name="guildId" id="permGuildSelect" required>
+                <option value="">اختر السيرفر</option>
+                <% guilds.forEach(g => { %><option value="<%= g.id %>"><%= g.name %></option><% }) %>
+              </select>
+            </label>
+            <label><span>الرتبة المسموح لها بالإعلانات</span><select name="roleId" id="permRoleSelect" required></select></label>
+          </div>
+          <button class="primary-btn" type="submit">حفظ</button>
+        </form>
+      </section>
+
+      <section id="users" class="glass card">
+        <h2>مستخدمي اللوحة</h2>
+        <% if (currentUser.role === 'owner') { %>
+        <form action="/users/add" method="POST" class="inline-form">
+          <input type="email" name="email" placeholder="Email" required>
+          <input type="text" name="password" placeholder="Password" required>
+          <input type="text" name="discordUserId" placeholder="Discord User ID" required>
+          <select name="role"><option value="admin">admin</option></select>
+          <button class="secondary-btn">إضافة مستخدم</button>
+        </form>
+        <% } %>
+        <div class="table">
+          <div class="thead"><span>الإيميل</span><span>الدور</span><span>Discord ID</span><span>الحالة</span></div>
+          <% users.forEach(u => { %>
+            <div class="trow">
+              <span><%= u.email %></span>
+              <span><%= u.role %></span>
+              <span><%= u.discordUserId || '-' %></span>
+              <span><%= u.isActive ? 'مفعل' : 'موقوف' %>
+                <% if (currentUser.role === 'owner' && u.role !== 'owner') { %>
+                  <form action="/users/toggle/<%= u.id %>" method="POST" style="display:inline-block;margin-right:8px;">
+                    <button class="mini-btn"><%= u.isActive ? 'إيقاف' : 'تفعيل' %></button>
+                  </form>
+                <% } %>
+              </span>
+            </div>
+          <% }) %>
+        </div>
+      </section>
+
+      <% if (currentUser.role === 'owner') { %>
+      <section id="settings" class="glass card">
+        <h2>إعدادات WM STORE</h2>
+        <form action="/settings" method="POST">
+          <div class="grid">
+            <label><span>وصف الموقع</span><input type="text" name="siteDescription" value="<%= settings.siteDescription %>"></label>
+            <label><span>قوة البلور</span><input type="number" name="blurStrength" value="<%= settings.blurStrength %>" min="0" max="40"></label>
+            <label><span>نوع المنشن الافتراضي</span>
+              <select name="defaultMentionType">
+                <option value="none" <%= settings.defaultMentionType === 'none' ? 'selected' : '' %>>بدون منشن</option>
+                <option value="everyone" <%= settings.defaultMentionType === 'everyone' ? 'selected' : '' %>>@everyone</option>
+                <option value="here" <%= settings.defaultMentionType === 'here' ? 'selected' : '' %>>@here</option>
+              </select>
+            </label>
+            <label><span>قناة الإعلانات الافتراضية</span><input type="text" name="defaultAnnouncementChannelId" value="<%= settings.defaultAnnouncementChannelId || '' %>"></label>
+            <label class="full"><span>رابط الخلفية</span><input type="url" name="backgroundImageUrl" value="<%= settings.backgroundImageUrl %>"></label>
+            <label><span>عنوان بانل الاشتراك</span><input type="text" name="subscriptionPanelTitle" value="<%= settings.subscriptionPanelTitle %>"></label>
+            <label class="full"><span>وصف بانل الاشتراك</span><input type="text" name="subscriptionPanelDescription" value="<%= settings.subscriptionPanelDescription %>"></label>
+            <label class="full"><span>تذييل بانل الاشتراك</span><input type="text" name="subscriptionPanelFooter" value="<%= settings.subscriptionPanelFooter %>"></label>
+          </div>
+          <button class="primary-btn" type="submit">حفظ</button>
+        </form>
+      </section>
+      <% } %>
+
+      <section id="logs" class="glass card">
+        <h2>السجل</h2>
+        <div class="table">
+          <div class="thead logs-head"><span>الوقت</span><span>النوع</span><span>من</span><span>التفاصيل</span></div>
+          <% logs.forEach(log => { %>
+            <div class="trow logs-row">
+              <span><%= new Date(log.time).toLocaleString('de-DE') %></span>
+              <span><%= log.type %></span>
+              <span><%= log.actorEmail || '-' %></span>
+              <span><%= log.message || log.plainTextPreview || '-' %></span>
+            </div>
+          <% }) %>
+        </div>
+      </section>
+    </main>
+  </div>
+
+<script>
+const guildSelect = document.getElementById('guildSelect');
+const guildNamePreview = document.getElementById('guildNamePreview');
+const channelId = document.getElementById('channelId');
+const mentionType = document.getElementById('mentionType');
+const mentionRoleWrap = document.getElementById('mentionRoleWrap');
+const mentionRoleId = document.getElementById('mentionRoleId');
+const permGuildSelect = document.getElementById('permGuildSelect');
+const permRoleSelect = document.getElementById('permRoleSelect');
+const sendMode = document.getElementById('sendMode');
+const channelWrap = document.getElementById('channelWrap');
+const savedPerms = <%- JSON.stringify(panelPerms || {}) %>;
+
+function toggleMentionRole(){ mentionRoleWrap.classList.toggle('hidden', mentionType.value !== 'role'); }
+function toggleSendMode(){ channelWrap.classList.toggle('hidden', sendMode.value !== 'channel'); }
+
+async function loadGuildDataIntoAnnounce(){
+  if(!guildSelect.value) return;
+  const res = await fetch('/guild-data/' + guildSelect.value);
+  const data = await res.json();
+  if(!data.ok) return;
+
+  guildNamePreview.value = data.guildName || '';
+  channelId.innerHTML = '';
+  mentionRoleId.innerHTML = '';
+
+  data.channels.forEach(channel => {
+    const ch = document.createElement('option');
+    ch.value = channel.id;
+    ch.textContent = `#${channel.name}`;
+    channelId.appendChild(ch);
+  });
+
+  data.roles.forEach(role => {
+    const r = document.createElement('option');
+    r.value = role.id;
+    r.textContent = `${role.name} (${role.count})`;
+    mentionRoleId.appendChild(r);
+  });
+}
+
+async function loadGuildRolesIntoPerms(){
+  if(!permGuildSelect.value) return;
+  const res = await fetch('/guild-data/' + permGuildSelect.value);
+  const data = await res.json();
+  if(!data.ok) return;
+
+  permRoleSelect.innerHTML = '';
+  data.roles.forEach(role => {
+    const o = document.createElement('option');
+    o.value = role.id;
+    o.textContent = `${role.name} (${role.count})`;
+    if (savedPerms[permGuildSelect.value] === role.id) o.selected = true;
+    permRoleSelect.appendChild(o);
+  });
+}
+
+async function refreshSendStatus() {
+  try {
+    const res = await fetch('/send-status');
+    const data = await res.json();
+    const state = data.isRunning ? (data.isPaused ? 'متوقف مؤقتًا' : 'جارٍ الإرسال') : 'متوقف';
+    document.getElementById('statusState').textContent = state;
+    document.getElementById('statusProcessed').textContent = `${data.processed} / ${data.total}`;
+    document.getElementById('statusSuccess').textContent = data.success;
+    document.getElementById('statusFailed').textContent = data.failed;
+    const errorsBox = document.getElementById('statusErrors');
+    if (data.errors && data.errors.length) {
+      errorsBox.innerHTML = data.errors.slice(0, 8).map(e => `<div class="error-item"><strong>${e.tag}</strong><span>${e.error}</span></div>`).join('');
+    } else {
+      errorsBox.innerHTML = 'لا توجد أخطاء حالياً.';
+    }
+  } catch (e) {
+    document.getElementById('statusState').textContent = 'تعذر الجلب';
+  }
+}
+async function pauseSend(){ await fetch('/send-pause', { method:'POST' }); refreshSendStatus(); }
+async function resumeSend(){ await fetch('/send-resume', { method:'POST' }); refreshSendStatus(); }
+async function stopSend(){ await fetch('/send-stop', { method:'POST' }); refreshSendStatus(); }
+
+mentionType.addEventListener('change', toggleMentionRole);
+sendMode.addEventListener('change', toggleSendMode);
+guildSelect.addEventListener('change', loadGuildDataIntoAnnounce);
+permGuildSelect.addEventListener('change', loadGuildRolesIntoPerms);
+toggleMentionRole();
+toggleSendMode();
+refreshSendStatus();
+setInterval(refreshSendStatus, 3000);
+</script>
+</body>
+</html>
