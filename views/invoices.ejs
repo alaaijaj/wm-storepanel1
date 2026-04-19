@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WM STORE - Invoices</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    body::before{
+      background-image: linear-gradient(rgba(11,7,20,.74), rgba(11,7,20,.88)), url('<%= settings.backgroundImageUrl || "/static/default-bg.svg" %>');
+      filter: blur(<%= settings.blurStrength || 14 %>px);
+      transform: scale(1.06);
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay"></div>
+  <div class="layout">
+    <aside class="sidebar glass">
+      <div class="brand hover-lift">
+        <img src="<%= logoPath() %>" alt="logo" class="ring"/>
+        <div>
+          <h1>WM STORE</h1>
+          <p>Seller Invoice Panel</p>
+        </div>
+      </div>
+      <div class="developer-card hover-lift">
+        <img src="<%= developer.avatar %>" alt="dev" class="ring"/>
+        <div>
+          <div class="label">Developer</div>
+          <div class="name"><%= developer.displayName %></div>
+          <div class="muted">@<%= developer.username %></div>
+        </div>
+      </div>
+      <nav>
+        <a href="/">الرجوع للوحة الرئيسية</a>
+        <a href="#invoice-form">إرسال فاتورة</a>
+        <a href="#invoice-history">سجل الفواتير</a>
+      </nav>
+      <a class="logout" href="/logout">تسجيل الخروج</a>
+    </aside>
+
+    <main class="content">
+      <% if (result && result.error) { %><div class="alert error"><%= result.error %></div><% } %>
+      <% if (result && result.success) { %><div class="alert success"><%= result.message %></div><% } %>
+
+      <section class="glass hero vip-hero">
+        <div class="hero-left">
+          <div class="hero-badge pulse">WM STORE</div>
+          <h2>بانل الفواتير للبائعين</h2>
+          <p>هذا القسم مخصص للبائعين. اكتب اسم المنتج والسعر ومعلومات المتجر والبائع والمشرف، وسيتم إرسال الفاتورة للمشتري بالخاص.</p>
+        </div>
+      </section>
+
+      <section id="invoice-form" class="glass card">
+        <div class="section-head">
+          <div>
+            <h2>إرسال فاتورة جديدة</h2>
+            <p class="section-note">أدخل User ID للمشتري وسيتم إرسال الفاتورة له بالخاص.</p>
+          </div>
+        </div>
+        <form action="/invoice/send" method="POST">
+          <div class="grid">
+            <label><span>Discord User ID للمشتري</span><input type="text" name="buyerUserId" required></label>
+            <label><span>اسم المنتج</span><input type="text" name="productName" required></label>
+            <label><span>السعر</span><input type="text" name="price" required></label>
+            <label><span>اسم البائع</span><input type="text" name="sellerName" required></label>
+            <label><span>اسم المشرف</span><input type="text" name="supervisorName" required></label>
+            <label class="full"><span>معلومات المتجر</span><input type="text" name="storeInfo" value="WM STORE | Digital Products & Services"></label>
+            <label class="full"><span>ملاحظات إضافية</span><textarea name="notes" rows="4" placeholder="مثلاً: تم الدفع بنجاح، المنتج رقمي، لا يوجد استرداد..."></textarea></label>
+          </div>
+          <button class="primary-btn shine-btn" type="submit">إرسال الفاتورة للمشتري</button>
+        </form>
+      </section>
+
+      <section id="invoice-history" class="glass card">
+        <div class="section-head">
+          <div>
+            <h2>سجل الفواتير</h2>
+            <p class="section-note">آخر الفواتير المرسلة من البانل.</p>
+          </div>
+        </div>
+        <div class="table">
+          <div class="thead"><span>المنتج</span><span>السعر</span><span>المشتري</span><span>البائع</span></div>
+          <% invoices.forEach(inv => { %>
+            <div class="trow">
+              <span><%= inv.productName %></span>
+              <span><%= inv.price %></span>
+              <span><%= inv.buyerUserId %></span>
+              <span><%= inv.sellerName %></span>
+            </div>
+          <% }) %>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
